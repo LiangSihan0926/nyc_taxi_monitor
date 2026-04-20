@@ -1,0 +1,42 @@
+# --- Data (don't commit raw data; use scripts/download_data.py) ---
+data/raw/
+data/clean/
+data/processed/
+data/*.parquet
+data/*.csv
+data/*.db
+data/*.duckdb
+!data/README.md
+!data/sample/
+!data/sample/**
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# --- Virtual envs ---
+.venv/
+venv/
+env/
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# --- Notebooks checkpoints ---
+.ipynb_checkpoints/
+
+# --- Reports build artifacts ---
+reports/figures/*.png
+!reports/figures/.gitkeep
