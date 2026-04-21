@@ -1,0 +1,4 @@
+method,runtime_sec,memory_bytes,memory_kb,overlap_with_exact,jaccard,rank_corr
+exact_dict,0.41519062500000015,23592,23.0390625,10,1.0,1.0
+reservoir,3.3006094169999995,3600984,3516.5859375,10,1.0,0.9878787878787879
+count_min_sketch,22.287964416999998,81920,80.0,10,1.0,1.0

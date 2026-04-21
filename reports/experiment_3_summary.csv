@@ -1,0 +1,8 @@
+metric,value
+stream_total_sec,5.574432709
+batch_total_sec,0.11246208300000049
+events,2873329.0
+mean_batch_latency_ms,8.236890451388863
+cmp_overlap,9.0
+cmp_jaccard,0.8181818181818182
+cmp_rank_correlation,0.925
