@@ -46,7 +46,7 @@ Each layer maps to a module under `src/taxi_monitor/`:
 
 ```bash
 # 1. Clone + enter the repo
-git clone https://github.com/LeungSunny/nyc_taxi_monitor.git
+git clone https://github.com/LiangSihan0926/nyc_taxi_monitor.git
 cd nyc_taxi_monitor
 
 # 2. Create a venv and install in editable mode
