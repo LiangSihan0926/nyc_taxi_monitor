@@ -1,0 +1,13 @@
+flowchart LR
+    RAW[raw parquet<br/>TLC monthly] --> ING[ingest + clean]
+    ING --> DB[(DuckDB)]
+    DB --> BATCH[batch hotspot<br/>+ anomaly z-score]
+    ING --> STREAM[streaming monitor<br/>sliding window]
+    STREAM --> APPROX[reservoir<br/>+ count-min sketch]
+    ING -.->|multiprocessing.Pool| PAR[parallel map-reduce]
+    PAR --> TOPK[global top-k]
+
+    classDef store fill:#eef,stroke:#447;
+    classDef par   fill:#fee,stroke:#844;
+    class DB store
+    class PAR,TOPK par

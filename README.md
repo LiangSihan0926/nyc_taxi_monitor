@@ -11,6 +11,8 @@ trips** (Nov 2023 – Jan 2024).
 
 ![CI](https://github.com/LiangSihan0926/nyc_taxi_monitor/actions/workflows/ci.yml/badge.svg) ![Python](https://img.shields.io/badge/python-3.9%2B-blue) ![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen) ![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-green)
 
+> **One-line pitch** — A reproducible pipeline that turns 9.37 M raw NYC taxi trips into hotspot and anomaly insights by comparing four complementary big-data techniques head-to-head: batch SQL (DuckDB), online streaming, approximate counting (reservoir + Count-Min Sketch), and MapReduce-style parallel aggregation.
+
 ---
 
 ## Main Findings
@@ -49,34 +51,55 @@ system demonstrates five concrete findings:
 | MapReduce ingest           | Best speed-up (2 workers) | **1.30×** vs sequential |
 | Anomalies                  | Surges flagged (&#124;z&#124; > 3) | **1,192** |
 
-<p align="center">
-  <img src="reports/figures/top_zones.png"       width="48%"/>
-  <img src="reports/figures/exact_vs_approx.png" width="48%"/>
-</p>
-<p align="center">
-  <img src="reports/figures/stream_vs_batch.png" width="48%"/>
-  <img src="reports/figures/parallel_speedup.png" width="48%"/>
-</p>
+### Why it matters
+
+**The two most important results are counter-intuitive and pedagogically useful**:
+
+1. **Count-Min Sketch is not universally smaller than an exact dict.**  At
+   263-zone cardinality, the exact dict (23 KB) beats CMS (80 KB).  The
+   sketch's theoretical win only appears once the key universe outgrows
+   `depth × width` — this project demonstrates that crossover boundary
+   empirically.
+2. **Parallel speed-up is bounded by partition count, not CPU count.**
+   Going from 2 → 4 workers *slows the job down* because only 3 parquet
+   files exist; extra processes idle while paying spawn and IPC overhead.
+   This mirrors real Hadoop / Spark tuning trade-offs.
+
+Everything else (batch vs streaming latency, z-score anomaly detection,
+top-zone distribution) confirms expected behaviour but at real scale.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="reports/figures/top_zones.png"/>
+      <br/><em>Top-10 pickup zones (Nov 23 – Jan 24) — 8 / 10 are Manhattan, the other two are JFK and LaGuardia.</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="reports/figures/exact_vs_approx.png"/>
+      <br/><em>Exact dict vs reservoir sample vs Count-Min Sketch — CMS recovers top-10 perfectly, but an exact dict is actually smaller here (low cardinality).</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="reports/figures/stream_vs_batch.png"/>
+      <br/><em>DuckDB batch vs pure-Python streaming on 2.87 M events — 38× throughput gap, but streaming holds 10.8 ms mean batch latency.</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="reports/figures/parallel_speedup.png"/>
+      <br/><em>MapReduce wall time vs workers — speed-up plateaus at 2 workers because there are only 3 input partitions.</em>
+    </td>
+  </tr>
+</table>
 
 ---
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    RAW[raw parquet<br/>TLC monthly] --> ING[ingest + clean]
-    ING --> DB[(DuckDB)]
-    DB --> BATCH[batch hotspot<br/>+ anomaly z-score]
-    ING --> STREAM[streaming monitor<br/>sliding window]
-    STREAM --> APPROX[reservoir<br/>+ count-min sketch]
-    ING -.->|multiprocessing.Pool| PAR[parallel map-reduce]
-    PAR --> TOPK[global top-k]
+![Architecture diagram — ingest & clean feed DuckDB (batch) and a streaming monitor with approximate counters; multiprocessing.Pool branches into a parallel map-reduce](docs/architecture.svg)
 
-    classDef store fill:#eef,stroke:#447;
-    classDef par   fill:#fee,stroke:#844;
-    class DB store
-    class PAR,TOPK par
-```
+*Figure 1 — Four data paths share the same cleaner: DuckDB batch SQL, a
+pure-Python streaming monitor, sublinear approximate counters
+(reservoir + Count-Min Sketch), and a MapReduce-style parallel ingest.*
 
 Each layer maps to a module under `src/taxi_monitor/`:
 
@@ -105,7 +128,7 @@ cd nyc_taxi_monitor
 # 2. Create a venv and install in editable mode
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev,viz]"
 
 # 3. Download ~150 MB of NYC TLC data (Nov'23, Dec'23, Jan'24 + zone lookup)
 python scripts/download_data.py
@@ -129,6 +152,45 @@ A `Makefile` wraps the whole pipeline: `make setup && make all`.
 
 ---
 
+## Reproducing Results
+
+All experiment CSVs (`reports/*.csv`) and figures (`reports/figures/*.png`) are
+committed, so `git clone` + reading is enough for grading.  To re-derive
+everything end-to-end:
+
+```bash
+# 0. One-time setup
+make setup                                       # or: pip install -e ".[dev,viz]"
+make data                                        # downloads ~150 MB TLC parquets
+
+# 1. Rebuild the DuckDB store from scratch
+make pipeline                                    # or: taxi-pipeline --months 2023-11 2023-12 2024-01
+
+# 2. Re-run every experiment (writes reports/*.csv)
+make experiments                                 # or: taxi-experiment-1 ... taxi-experiment-5
+
+# 3. Refresh the 4 embedded figures
+make figures                                     # or: taxi-figures
+
+# Or do everything in one shot:
+make all
+```
+
+Each experiment writes to a predictable location:
+
+| Experiment              | Script                                         | Output CSVs                                          |
+| ----------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| 1 — Batch hotspot       | `scripts/experiment_1_batch_hotspot.py`        | `reports/experiment_1_{overall,per_hour}.csv`        |
+| 2 — Anomaly             | `scripts/experiment_2_anomaly.py`              | `reports/experiment_2_{baseline,anomalies}.csv`      |
+| 3 — Stream vs batch     | `scripts/experiment_3_streaming_vs_batch.py`   | `reports/experiment_3_summary.csv`                   |
+| 4 — Exact vs approx     | `scripts/experiment_4_exact_vs_approximate.py` | `reports/experiment_4_{summary,topk_*}.csv`          |
+| 5 — Parallel MapReduce  | `scripts/experiment_5_parallel.py`             | `reports/experiment_5_parallel.csv`                  |
+
+`scripts/make_figures.py` reads the summary CSVs above and writes
+`reports/figures/{top_zones,exact_vs_approx,stream_vs_batch,parallel_speedup}.png`.
+
+---
+
 ## Experiments
 
 | # | Script                                     | What it measures                                  |
@@ -138,6 +200,27 @@ A `Makefile` wraps the whole pipeline: `make setup && make all`.
 | 3 | `experiment_3_streaming_vs_batch.py`       | Correctness + latency of streaming vs batch       |
 | 4 | `experiment_4_exact_vs_approximate.py`     | Memory / runtime / top-k accuracy of exact vs reservoir vs CMS |
 | 5 | `experiment_5_parallel.py`                 | MapReduce parallel ingest — wall time & speed-up vs workers |
+
+### What "MapReduce-style" means in Experiment 5
+
+Experiment 5 intentionally mirrors the MapReduce pattern from the course:
+
+- **Map step** — each worker process (spawned by `multiprocessing.Pool`) takes
+  one input *partition* (a single monthly parquet), loads + cleans it, and
+  emits a local `{zone_id: trip_count}` dictionary.  Workers share nothing;
+  each has its own Python interpreter, bypassing the GIL.
+- **Reduce step** — the coordinator receives every worker's partial dict and
+  folds them with `heapq.nlargest` on the merged `Counter`, returning the
+  global top-k.  This is a *commutative, associative aggregation*, which is
+  exactly what MapReduce requires for correctness.
+
+Speed-up is **sub-linear** beyond 2 workers on this workload because the job
+only has **3 input partitions** (Nov / Dec / Jan parquets).  Adding more
+workers than partitions means the extra processes sit idle while still paying
+fixed pool **spawn** and inter-process **pickle / IPC overhead**.  This is the
+same reason Hadoop / Spark tune block size against cluster size —
+parallelism is bounded by the number of partitions, not by the number of CPU
+cores.
 
 ---
 
@@ -168,6 +251,10 @@ nyc_taxi_monitor/
 ├── pyproject.toml
 ├── requirements.txt
 ├── requirements-dev.txt
+├── docs/
+│   ├── architecture.mmd       # Mermaid source for the system diagram
+│   ├── architecture.svg       # Rendered diagram used in README
+│   └── RESULTS.md             # Per-experiment deep-dive analysis
 ├── src/taxi_monitor/
 │   ├── __init__.py
 │   ├── ingest.py
@@ -181,6 +268,7 @@ nyc_taxi_monitor/
 │   ├── parallel.py
 │   └── utils.py
 ├── scripts/
+│   ├── __init__.py
 │   ├── download_data.py
 │   ├── run_pipeline.py
 │   ├── experiment_1_batch_hotspot.py
@@ -232,6 +320,21 @@ nyc_taxi_monitor/
   top-k results are identical to the batch pipeline.  The observed
   speed-up plateaus at the number of input partitions — classic
   MapReduce scaling behaviour on a small partition count.
+
+---
+
+## Documentation & Additional Materials
+
+Beyond this README, three supporting documents live under `docs/`:
+
+| File                      | Purpose                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `docs/architecture.svg`   | Rendered system architecture (shown in *Architecture* above).                       |
+| `docs/architecture.mmd`   | Mermaid source for the architecture diagram — edit and re-export via https://mermaid.live. |
+| `docs/RESULTS.md`         | Per-experiment deep-dive: setup, full tables, and insights for all five experiments. |
+
+For the algorithmic rationale behind each module, see the *Algorithmic notes*
+section above.
 
 ---
 
