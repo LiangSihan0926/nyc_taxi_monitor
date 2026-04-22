@@ -22,6 +22,7 @@ from . import (  # noqa: F401  (re-export)
     database,
     hotspot,
     ingest,
+    parallel,
     streaming,
     utils,
 )
@@ -34,6 +35,7 @@ __all__ = [
     "database",
     "hotspot",
     "ingest",
+    "parallel",
     "streaming",
     "utils",
     "__version__",
