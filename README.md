@@ -17,7 +17,7 @@ trips** (Nov 2023 – Jan 2024).
 
 ---
 
-## 📊 Main Findings
+## Main Findings
 
 Across **9,369,680 cleaned Yellow Taxi trips** (Nov 2023 – Jan 2024) the
 system demonstrates five concrete findings:
