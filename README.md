@@ -253,7 +253,7 @@ nyc_taxi_monitor/
 ├── requirements-dev.txt
 ├── docs/
 │   ├── architecture.mmd       # Mermaid source for the system diagram
-│   ├── architecture.svg       # Rendered diagram used in README
+│   ├── architecture.png       # Rendered diagram used in README
 │   └── RESULTS.md             # Per-experiment deep-dive analysis
 ├── src/taxi_monitor/
 │   ├── __init__.py
