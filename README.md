@@ -2,28 +2,84 @@
 
 **Scalable NYC Taxi Demand Monitoring System** — a final project for ORIE 5270
 (Big Data Analysis).  Built around the [NYC TLC Trip Records][tlc] it
-combines a SQL batch pipeline, an online streaming monitor, and two
-approximate-counting algorithms so we can compare their time / memory /
-accuracy trade-offs on real data.
+combines a SQL batch pipeline, an online streaming monitor, two
+approximate-counting algorithms, and a MapReduce-style parallel aggregator so
+we can compare their time / memory / accuracy trade-offs on **9.37 M cleaned
+trips** (Nov 2023 – Jan 2024).
 
 [tlc]: https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
+
+![CI](https://github.com/LiangSihan0926/nyc_taxi_monitor/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)
+![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## 📊 Main Findings
+
+Across **9,369,680 cleaned Yellow Taxi trips** (Nov 2023 – Jan 2024) the
+system demonstrates five concrete findings:
+
+- **DuckDB batch beats a pure-Python streaming monitor ~38×** on throughput
+  (0.19 s vs 7.34 s end-to-end on 2.87 M events), but streaming holds
+  mean per-batch latency to **10.8 ms** — a viable online option when a
+  columnar DB isn't available.
+- **Count-Min Sketch recovers the top-10 pickup zones perfectly** (Jaccard
+  1.00, Spearman ρ = 1.00) in 80 KB — yet **an exact dict is actually
+  smaller here (23 KB)** because there are only 263 zones.  The experiment
+  makes the cardinality / accuracy / memory trade-off *explicit* rather
+  than assumed.
+- **Reservoir sampling (k = 100 000) reaches rank-correlation 0.988** with
+  the exact top-10 — a clean empirical point on the accuracy-memory curve.
+- **MapReduce parallel ingest tops out at 1.30× on 2 workers** over the
+  sequential baseline (18.0 s → 13.9 s); **4 and 8 workers regress to
+  1.18× / 1.25×** because the job only has 3 input partitions, so
+  additional workers sit idle while paying spawn overhead.  This is a
+  live demonstration of Amdahl-style scaling limits on the *map
+  partition count*, not CPU cores.
+- **Z-score anomaly detection flags 1,192 demand surges** against a weekly
+  (hour-of-week) baseline — concentrated around Manhattan airports,
+  Midtown, and the Upper East Side.
+
+| Experiment | Metric | Value |
+| --- | --- | ---: |
+| Top zones (3 mo)           | Busiest pickup zone       | Upper East Side South — **467,567** trips |
+| Streaming vs batch         | Batch speed-up            | **37.8×** (0.19 s vs 7.34 s) |
+| Streaming latency          | Mean per 10 k batch       | **10.8 ms** |
+| Exact vs approximate       | CMS top-10 Jaccard        | **1.00** (80 KB) |
+| Exact vs approximate       | Reservoir rank-corr       | **0.988** (3.5 MB, k = 100 k) |
+| MapReduce ingest           | Best speed-up (2 workers) | **1.30×** vs sequential |
+| Anomalies                  | Surges flagged (&#124;z&#124; > 3) | **1,192** |
+
+<p align="center">
+  <img src="reports/figures/top_zones.png"       width="48%"/>
+  <img src="reports/figures/exact_vs_approx.png" width="48%"/>
+</p>
+<p align="center">
+  <img src="reports/figures/stream_vs_batch.png" width="48%"/>
+  <img src="reports/figures/parallel_speedup.png" width="48%"/>
+</p>
 
 ---
 
 ## Architecture
 
-```
-         ┌──────────────┐    ┌──────────────┐    ┌────────────────┐
- raw →   │   ingest +   │ →  │   DuckDB /   │ →  │  batch hotspot │
-parquet  │   clean      │    │   SQL agg.   │    │  + anomaly     │
-         └──────────────┘    └──────────────┘    └────────────────┘
-                 │
-                 ▼
-         ┌──────────────┐          ┌──────────────────────────────┐
-         │  streaming   │   ↔↔↔↔   │  approximate counters:       │
-         │  monitor     │          │   reservoir + count-min      │
-         └──────────────┘          └──────────────────────────────┘
-           Batch pipeline  →  Streaming extension  →  Approximation layer
+```mermaid
+flowchart LR
+    RAW[raw parquet<br/>TLC monthly] --> ING[ingest + clean]
+    ING --> DB[(DuckDB)]
+    DB --> BATCH[batch hotspot<br/>+ anomaly z-score]
+    ING --> STREAM[streaming monitor<br/>sliding window]
+    STREAM --> APPROX[reservoir<br/>+ count-min sketch]
+    ING -.->|multiprocessing.Pool| PAR[parallel map-reduce]
+    PAR --> TOPK[global top-k]
+
+    classDef store fill:#eef,stroke:#447;
+    classDef par   fill:#fee,stroke:#844;
+    class DB store
+    class PAR,TOPK par
 ```
 
 Each layer maps to a module under `src/taxi_monitor/`:
@@ -38,6 +94,7 @@ Each layer maps to a module under `src/taxi_monitor/`:
 | `anomaly.py`     | Per-(zone, hour-of-week) z-score surge detection        |
 | `streaming.py`   | Online `StreamingMonitor` with optional sliding window  |
 | `approximate.py` | `ReservoirSampler` + `CountMinSketch`                   |
+| `parallel.py`    | `multiprocessing.Pool` map-reduce over parquet files    |
 | `utils.py`       | Logging, seeding, path helpers                          |
 
 ---
@@ -60,14 +117,19 @@ python scripts/download_data.py
 # 4. Run the batch pipeline (loads clean trips into DuckDB)
 python scripts/run_pipeline.py --months 2023-11 2023-12 2024-01
 
-# 5. Run the four experiments
+# 5. Run the five experiments
 python scripts/experiment_1_batch_hotspot.py
 python scripts/experiment_2_anomaly.py
 python scripts/experiment_3_streaming_vs_batch.py
 python scripts/experiment_4_exact_vs_approximate.py
+python scripts/experiment_5_parallel.py
+
+# 6. (Optional) Regenerate the plots embedded in this README
+python scripts/make_figures.py
 ```
 
-Experiment outputs land in `reports/*.csv`.
+Experiment outputs land in `reports/*.csv`; PNG plots in `reports/figures/`.
+A `Makefile` wraps the whole pipeline: `make setup && make all`.
 
 ---
 
@@ -79,6 +141,7 @@ Experiment outputs land in `reports/*.csv`.
 | 2 | `experiment_2_anomaly.py`                  | Demand surges vs Nov/Dec baseline (z-score)       |
 | 3 | `experiment_3_streaming_vs_batch.py`       | Correctness + latency of streaming vs batch       |
 | 4 | `experiment_4_exact_vs_approximate.py`     | Memory / runtime / top-k accuracy of exact vs reservoir vs CMS |
+| 5 | `experiment_5_parallel.py`                 | MapReduce parallel ingest — wall time & speed-up vs workers |
 
 ---
 
@@ -119,6 +182,7 @@ nyc_taxi_monitor/
 │   ├── anomaly.py
 │   ├── streaming.py
 │   ├── approximate.py
+│   ├── parallel.py
 │   └── utils.py
 ├── scripts/
 │   ├── download_data.py
@@ -126,7 +190,9 @@ nyc_taxi_monitor/
 │   ├── experiment_1_batch_hotspot.py
 │   ├── experiment_2_anomaly.py
 │   ├── experiment_3_streaming_vs_batch.py
-│   └── experiment_4_exact_vs_approximate.py
+│   ├── experiment_4_exact_vs_approximate.py
+│   ├── experiment_5_parallel.py
+│   └── make_figures.py
 ├── tests/
 │   ├── conftest.py
 │   ├── test_utils.py
@@ -136,9 +202,12 @@ nyc_taxi_monitor/
 │   ├── test_hotspot.py
 │   ├── test_anomaly.py
 │   ├── test_streaming.py
-│   └── test_approximate.py
+│   ├── test_approximate.py
+│   └── test_parallel.py
+├── .github/workflows/ci.yml  # pytest matrix on Python 3.9 – 3.12
+├── Makefile                  # make setup | data | pipeline | experiments | figures | test
 ├── data/          # git-ignored; populated by download_data.py
-└── reports/       # experiment CSV outputs
+└── reports/       # experiment CSV outputs + figures/*.png
 ```
 
 ---
@@ -160,6 +229,13 @@ nyc_taxi_monitor/
   randomness would break reproducibility across runs).  `from_bounds(eps,
   delta)` sizes the sketch to achieve additive error `eps·N` with
   probability `1 − delta`.  CMS never under-counts; it only over-counts.
+* **Parallel map-reduce.**  `multiprocessing.Pool` dispatches each
+  monthly parquet to a separate process (bypassing the GIL); per-worker
+  `{zone: count}` dicts are then merged by a single `heapq.nlargest`
+  reduce step.  Tie-break on ascending `zone_id` matches `hotspot.py` so
+  top-k results are identical to the batch pipeline.  The observed
+  speed-up plateaus at the number of input partitions — classic
+  MapReduce scaling behaviour on a small partition count.
 
 ---
 
