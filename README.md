@@ -1,7 +1,7 @@
 # nyc_taxi_monitor
 
-**Scalable NYC Taxi Demand Monitoring System** — a final project for ORIE 5270
-(Big Data Analysis).  Built around the [NYC TLC Trip Records][tlc] it
+**Scalable NYC Taxi Demand Monitoring System** 
+ Built around the [NYC TLC Trip Records][tlc] it
 combines a SQL batch pipeline, an online streaming monitor, two
 approximate-counting algorithms, and a MapReduce-style parallel aggregator so
 we can compare their time / memory / accuracy trade-offs on **9.37 M cleaned
@@ -11,7 +11,7 @@ trips** (Nov 2023 – Jan 2024).
 
 ![CI](https://github.com/LiangSihan0926/nyc_taxi_monitor/actions/workflows/ci.yml/badge.svg) ![Python](https://img.shields.io/badge/python-3.9%2B-blue) ![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen) ![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **One-line pitch** — A reproducible pipeline that turns 9.37 M raw NYC taxi trips into hotspot and anomaly insights by comparing four complementary big-data techniques head-to-head: batch SQL (DuckDB), online streaming, approximate counting (reservoir + Count-Min Sketch), and MapReduce-style parallel aggregation.
+> **Pitch** — A reproducible pipeline that turns 9.37 M raw NYC taxi trips into hotspot and anomaly insights by comparing four complementary big-data techniques head-to-head: batch SQL (DuckDB), online streaming, approximate counting (reservoir + Count-Min Sketch), and MapReduce-style parallel aggregation.
 
 ---
 
