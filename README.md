@@ -95,7 +95,7 @@ top-zone distribution) confirms expected behaviour but at real scale.
 
 ## Architecture
 
-![Architecture diagram — ingest & clean feed DuckDB (batch) and a streaming monitor with approximate counters; multiprocessing.Pool branches into a parallel map-reduce](docs/architecture.svg)
+![Architecture diagram — ingest & clean feed DuckDB (batch) and a streaming monitor with approximate counters; multiprocessing.Pool branches into a parallel map-reduce](docs/architecture.png)
 
 *Figure 1 — Four data paths share the same cleaner: DuckDB batch SQL, a
 pure-Python streaming monitor, sublinear approximate counters
@@ -329,7 +329,7 @@ Beyond this README, three supporting documents live under `docs/`:
 
 | File                      | Purpose                                                                             |
 | ------------------------- | ----------------------------------------------------------------------------------- |
-| `docs/architecture.svg`   | Rendered system architecture (shown in *Architecture* above).                       |
+| `docs/architecture.png`   | Rendered system architecture (shown in *Architecture* above).                       |
 | `docs/architecture.mmd`   | Mermaid source for the architecture diagram — edit and re-export via https://mermaid.live. |
 | `docs/RESULTS.md`         | Per-experiment deep-dive: setup, full tables, and insights for all five experiments. |
 
