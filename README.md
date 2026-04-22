@@ -9,11 +9,12 @@ trips** (Nov 2023 – Jan 2024).
 
 [tlc]: https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
 
-![CI](https://github.com/LiangSihan0926/nyc_taxi_monitor/actions/workflows/ci.yml/badge.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-blue)
-![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)
-![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-green)
+## Project Status
+
+- Continuous Integration (CI) is enabled via GitHub Actions to ensure code quality on every push.
+- The project is implemented in Python 3.9+.
+- Test coverage reaches 98%, with 78 tests currently passing.
+- The codebase is released under the MIT License.
 
 ---
 
