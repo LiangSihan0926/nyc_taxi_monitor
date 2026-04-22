@@ -38,5 +38,6 @@ env/
 .ipynb_checkpoints/
 
 # --- Reports build artifacts ---
-reports/figures/*.png
-!reports/figures/.gitkeep
+# NOTE: README.md embeds PNGs from reports/figures/, so we commit them.
+# Re-generate via `python scripts/make_figures.py` (or `make figures`).
+!reports/figures/*.png

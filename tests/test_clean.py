@@ -61,3 +61,21 @@ def test_report_as_dict(raw_trips_df):
     assert d["input_rows"] == report.input_rows
     assert d["output_rows"] == report.output_rows
     assert "dropped_bad_zone" in d
+
+
+def test_clean_drops_nonsense_early_dates(raw_trips_df: pd.DataFrame):
+    """TLC parquets occasionally contain timestamps from 2002 / 2009 that
+    pass every other sanity filter.  `MIN_PICKUP_YEAR` must drop them."""
+    df = raw_trips_df.copy()
+    # Corrupt two rows to have ancient pickup datetimes (valid zones, valid
+    # duration, valid fare — only the date is nonsense).
+    df.loc[10, "tpep_pickup_datetime"] = pd.Timestamp("2002-12-31 22:00:00")
+    df.loc[10, "tpep_dropoff_datetime"] = pd.Timestamp("2002-12-31 22:05:00")
+    df.loc[11, "tpep_pickup_datetime"] = pd.Timestamp("2009-01-01 00:00:00")
+    df.loc[11, "tpep_dropoff_datetime"] = pd.Timestamp("2009-01-01 00:05:00")
+
+    clean, report = clean_trips(df)
+
+    assert report.dropped["bad_date"] >= 2
+    # None of the surviving rows should be from before MIN_PICKUP_YEAR.
+    assert (clean["pickup_hour"].dt.year >= 2010).all()

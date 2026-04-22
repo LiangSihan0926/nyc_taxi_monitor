@@ -53,6 +53,12 @@ MAX_TRIP_SECONDS = 6 * 60 * 60  # 6 hours
 MIN_TRIP_DISTANCE = 0.0
 MAX_TRIP_DISTANCE = 100.0  # miles
 
+# TLC parquet files occasionally contain rows with nonsense pickup
+# timestamps (e.g. 2002-12-31, 2009-01-01) that pass all other filters.
+# Year < 2010 is a safe floor — TLC electronic trip records only started
+# in 2009 and Yellow Taxi LocationID encoding only stabilised in 2011.
+MIN_PICKUP_YEAR = 2010
+
 
 def clean_trips(
     df: pd.DataFrame,
@@ -70,10 +76,11 @@ def clean_trips(
       1. Drop rows with NaNs in required columns.
       2. Parse datetime columns and drop rows where parsing failed.
       3. Drop rows with non-positive trip duration or duration > 6h.
-      4. Drop rows with invalid zone IDs.
-      5. Drop rows with negative fares or absurd distances.
-      6. De-duplicate exact duplicate rows.
-      7. Derive `trip_duration_sec`, `pickup_hour`, `pickup_date`.
+      4. Drop rows with pickup year < `MIN_PICKUP_YEAR` (nonsense dates).
+      5. Drop rows with invalid zone IDs.
+      6. Drop rows with negative fares or absurd distances.
+      7. De-duplicate exact duplicate rows.
+      8. Derive `trip_duration_sec`, `pickup_hour`, `pickup_date`.
     """
     original = len(df)
     dropped: Dict[str, int] = {}
@@ -101,7 +108,14 @@ def clean_trips(
     duration = duration.loc[mask]
     dropped["bad_duration"] = before - len(df)
 
-    # 4. Zone IDs must be integers in [1, 263]
+    # 4. Pickup date sanity (catch nonsense timestamps like 2002, 2009)
+    before = len(df)
+    mask = df[pickup_col].dt.year >= MIN_PICKUP_YEAR
+    df = df.loc[mask].copy()
+    duration = duration.loc[mask]
+    dropped["bad_date"] = before - len(df)
+
+    # 5. Zone IDs must be integers in [1, 263]
     before = len(df)
     for col in (pu_zone_col, do_zone_col):
         df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
@@ -113,7 +127,7 @@ def clean_trips(
     duration = duration.loc[mask]
     dropped["bad_zone"] = before - len(df)
 
-    # 5. Fare / distance sanity
+    # 6. Fare / distance sanity
     before = len(df)
     good = pd.Series(True, index=df.index)
     if distance_col in df.columns:
@@ -128,13 +142,13 @@ def clean_trips(
     duration = duration.loc[good]
     dropped["bad_fare_distance"] = before - len(df)
 
-    # 6. Exact duplicates
+    # 7. Exact duplicates
     before = len(df)
     df = df.drop_duplicates()
     duration = duration.loc[df.index]
     dropped["duplicates"] = before - len(df)
 
-    # 7. Derived columns used by aggregation / hotspot / streaming.
+    # 8. Derived columns used by aggregation / hotspot / streaming.
     df["trip_duration_sec"] = duration.astype(np.int64)
     df["pickup_hour"] = df[pickup_col].dt.floor("h")
     df["pickup_date"] = df[pickup_col].dt.date
