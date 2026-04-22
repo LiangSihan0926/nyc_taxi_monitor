@@ -28,8 +28,19 @@ viz = [
     "matplotlib>=3.7",
 ]
 
+[project.scripts]
+taxi-download     = "scripts.download_data:main"
+taxi-pipeline     = "scripts.run_pipeline:main"
+taxi-experiment-1 = "scripts.experiment_1_batch_hotspot:main"
+taxi-experiment-2 = "scripts.experiment_2_anomaly:main"
+taxi-experiment-3 = "scripts.experiment_3_streaming_vs_batch:main"
+taxi-experiment-4 = "scripts.experiment_4_exact_vs_approximate:main"
+taxi-experiment-5 = "scripts.experiment_5_parallel:main"
+taxi-figures      = "scripts.make_figures:main"
+
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "."]
+include = ["taxi_monitor*", "scripts"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
