@@ -37,6 +37,11 @@ taxi-experiment-3 = "scripts.experiment_3_streaming_vs_batch:main"
 taxi-experiment-4 = "scripts.experiment_4_exact_vs_approximate:main"
 taxi-experiment-5 = "scripts.experiment_5_parallel:main"
 taxi-figures      = "scripts.make_figures:main"
+taxi-experiment-6-forecast = "scripts.experiment_6_forecast:main"
+taxi-experiment-7-advanced-anomaly = "scripts.experiment_7_advanced_anomaly:main"
+taxi-experiment-8-business-analytics = "scripts.experiment_8_business_analytics:main"
+taxi-dashboard = "scripts.run_dashboard:main"
+taxi-benchmark = "scripts.run_benchmark:main"
 
 [tool.setuptools.packages.find]
 where = ["src", "."]
