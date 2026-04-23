@@ -16,10 +16,15 @@ except _metadata.PackageNotFoundError:  # pragma: no cover
 
 from . import (  # noqa: F401  (re-export)
     aggregate,
+    analytics,
     anomaly,
+    advanced_anomaly,
     approximate,
+    benchmarking,
     clean,
+    dashboard,
     database,
+    forecast,
     hotspot,
     ingest,
     parallel,
@@ -29,10 +34,15 @@ from . import (  # noqa: F401  (re-export)
 
 __all__ = [
     "aggregate",
+    "analytics",
     "anomaly",
+    "advanced_anomaly",
     "approximate",
+    "benchmarking",
     "clean",
+    "dashboard",
     "database",
+    "forecast",
     "hotspot",
     "ingest",
     "parallel",
