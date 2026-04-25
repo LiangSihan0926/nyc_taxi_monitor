@@ -15,7 +15,7 @@ from taxi_monitor.forecast import backtest_zone_forecasts, forecast_next_horizon
 
 def _toy_demand() -> pd.DataFrame:
     rows = []
-    hours = pd.date_range("2024-01-01", periods=24 * 14, freq="H")
+    hours = pd.date_range("2024-01-01", periods=24 * 14, freq="h")
     for ts in hours:
         rows.append({"pickup_hour": ts, "zone_id": 1, "trips": 10 + (ts.hour in {8, 9, 17, 18}) * 5})
         rows.append({"pickup_hour": ts, "zone_id": 2, "trips": 6 + (ts.dayofweek >= 5) * 3})
@@ -56,8 +56,8 @@ def test_sql_analytics_runs():
     init_schema(conn)
     raw = pd.DataFrame(
         {
-            "tpep_pickup_datetime": pd.date_range("2024-01-01", periods=8, freq="H"),
-            "tpep_dropoff_datetime": pd.date_range("2024-01-01 00:10", periods=8, freq="H"),
+            "tpep_pickup_datetime": pd.date_range("2024-01-01", periods=8, freq="h"),
+            "tpep_dropoff_datetime": pd.date_range("2024-01-01 00:10", periods=8, freq="h"),
             "PULocationID": [1, 1, 2, 2, 3, 3, 4, 4],
             "DOLocationID": [2, 3, 3, 4, 4, 1, 1, 2],
             "passenger_count": [1] * 8,
@@ -65,8 +65,8 @@ def test_sql_analytics_runs():
             "fare_amount": [10.0] * 8,
             "total_amount": [13.0] * 8,
             "trip_duration_sec": [600] * 8,
-            "pickup_hour": pd.date_range("2024-01-01", periods=8, freq="H"),
-            "pickup_date": pd.date_range("2024-01-01", periods=8, freq="H").date,
+            "pickup_hour": pd.date_range("2024-01-01", periods=8, freq="h"),
+            "pickup_date": pd.date_range("2024-01-01", periods=8, freq="h").date,
         }
     )
     insert_clean_trips(conn, raw)
