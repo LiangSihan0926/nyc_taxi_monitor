@@ -52,7 +52,7 @@ def prepare_hourly_panel(
     zone_col: str = "zone_id",
     count_col: str = "trips",
     full_grid: bool = True,
-    freq: str = "H",
+    freq: str = "h",
 ) -> pd.DataFrame:
     """Return a dense hourly panel with columns [pickup_hour, zone_id, trips].
 
@@ -233,7 +233,7 @@ def forecast_next_horizon(
 
     panel = prepare_hourly_panel(demand, ts_col=ts_col, zone_col=zone_col, count_col=count_col)
     last_ts = pd.Timestamp(panel[ts_col].max())
-    future_ts = pd.date_range(last_ts + pd.Timedelta(hours=1), periods=horizon, freq="H")
+    future_ts = pd.date_range(last_ts + pd.Timedelta(hours=1), periods=horizon, freq="h")
     zones = np.sort(panel[zone_col].unique())
 
     hist = {
