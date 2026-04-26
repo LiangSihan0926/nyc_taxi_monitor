@@ -234,3 +234,22 @@ def test_more_sql_analytics_with_zone_lookup_runs():
 
     zone_summary = avg_fare_distance_by_zone(conn)
     assert not zone_summary.empty
+
+def test_prepare_hourly_panel_missing_columns_raises():
+    bad = pd.DataFrame({"pickup_hour": pd.date_range("2024-01-01", periods=3, freq="h")})
+
+    with pytest.raises(ValueError):
+        prepare_hourly_panel(bad)
+
+
+def test_backtest_not_enough_history_raises():
+    demand = pd.DataFrame(
+        {
+            "pickup_hour": pd.date_range("2024-01-01", periods=4, freq="h"),
+            "zone_id": [1, 1, 1, 1],
+            "trips": [1, 2, 3, 4],
+        }
+    )
+
+    with pytest.raises(ValueError):
+        backtest_zone_forecasts(demand, holdout_hours=24)
