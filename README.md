@@ -1,11 +1,14 @@
 # nyc_taxi_monitor
 
-**Scalable NYC Taxi Demand Monitoring System** 
- Built around the [NYC TLC Trip Records][tlc] it
-combines a SQL batch pipeline, an online streaming monitor, two
-approximate-counting algorithms, and a MapReduce-style parallel aggregator so
-we can compare their time / memory / accuracy trade-offs on **9.37 M cleaned
-trips** (Nov 2023 – Jan 2024).
+**Scalable NYC Taxi Demand Monitoring System**  
+Built around the [NYC TLC Trip Records][tlc], it combines a SQL batch pipeline,
+an online streaming monitor, two approximate-counting algorithms, and a
+MapReduce-style parallel aggregator so we can compare their time / memory /
+accuracy trade-offs on **9.37 M cleaned trips** (Nov 2023 – Jan 2024).
+
+We further extend the system with lightweight forecasting baselines, stronger
+anomaly detection, business-oriented SQL analytics, benchmarking helpers, and a
+reproducible dashboard layer.
 
 [tlc]: https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
 
@@ -103,18 +106,23 @@ pure-Python streaming monitor, sublinear approximate counters
 
 Each layer maps to a module under `src/taxi_monitor/`:
 
-| Module           | Role                                                    |
-| ---------------- | ------------------------------------------------------- |
-| `ingest.py`      | Download + parquet/CSV loaders                          |
-| `clean.py`       | Drop dirty rows, derive `pickup_hour` / `trip_duration` |
-| `database.py`    | DuckDB schema + upserts                                 |
-| `aggregate.py`   | SQL aggregations (`zone × hour`, busiest zones, …)      |
-| `hotspot.py`     | `O(n log k)` top-k via a bounded min-heap               |
-| `anomaly.py`     | Per-(zone, hour-of-week) z-score surge detection        |
-| `streaming.py`   | Online `StreamingMonitor` with optional sliding window  |
-| `approximate.py` | `ReservoirSampler` + `CountMinSketch`                   |
-| `parallel.py`    | `multiprocessing.Pool` map-reduce over parquet files    |
-| `utils.py`       | Logging, seeding, path helpers                          |
+| Module                | Role                                                         |
+| --------------------- | ------------------------------------------------------------ |
+| `ingest.py`           | Download + parquet/CSV loaders                               |
+| `clean.py`            | Drop dirty rows, derive `pickup_hour` / `trip_duration`      |
+| `database.py`         | DuckDB schema + upserts                                      |
+| `aggregate.py`        | SQL aggregations (`zone × hour`, busiest zones, …)           |
+| `hotspot.py`          | `O(n log k)` top-k via a bounded min-heap                    |
+| `anomaly.py`          | Per-(zone, hour-of-week) z-score surge detection             |
+| `advanced_anomaly.py` | Robust z-score, EWMA residual scoring, consensus anomalies   |
+| `forecast.py`         | Lightweight forecasting baselines + next-horizon prediction  |
+| `analytics.py`        | Business-oriented SQL analytics and operational summaries    |
+| `benchmarking.py`     | Runtime / memory benchmarking helpers for experiments        |
+| `dashboard.py`        | Reproducible matplotlib dashboard generation                 |
+| `streaming.py`        | Online `StreamingMonitor` with optional sliding window       |
+| `approximate.py`      | `ReservoirSampler` + `CountMinSketch`                        |
+| `parallel.py`         | `multiprocessing.Pool` map-reduce over parquet files         |
+| `utils.py`            | Logging, seeding, path helpers                               |
 
 ---
 
@@ -136,16 +144,22 @@ python scripts/download_data.py
 # 4. Run the batch pipeline (loads clean trips into DuckDB)
 python scripts/run_pipeline.py --months 2023-11 2023-12 2024-01
 
-# 5. Run the five experiments
+# 5. Run the eight experiments
 python scripts/experiment_1_batch_hotspot.py
 python scripts/experiment_2_anomaly.py
 python scripts/experiment_3_streaming_vs_batch.py
 python scripts/experiment_4_exact_vs_approximate.py
 python scripts/experiment_5_parallel.py
+python scripts/experiment_6_forecast.py
+python scripts/experiment_7_advanced_anomaly.py
+python scripts/experiment_8_business_analytics.py
 
-# 6. (Optional) Regenerate the plots embedded in this README
+# 6. Run benchmark + dashboard
+python scripts/run_benchmark.py
+python scripts/run_dashboard.py
+
+# 7. (Optional) Regenerate the plots embedded in this README
 python scripts/make_figures.py
-```
 
 Experiment outputs land in `reports/*.csv`; PNG plots in `reports/figures/`.
 A `Makefile` wraps the whole pipeline: `make setup && make all`.
@@ -167,7 +181,7 @@ make data                                        # downloads ~150 MB TLC parquet
 make pipeline                                    # or: taxi-pipeline --months 2023-11 2023-12 2024-01
 
 # 2. Re-run every experiment (writes reports/*.csv)
-make experiments                                 # or: taxi-experiment-1 ... taxi-experiment-5
+make experiments                                 # or: taxi-experiment-1 ... taxi-experiment-8
 
 # 3. Refresh the 4 embedded figures
 make figures                                     # or: taxi-figures
@@ -178,28 +192,38 @@ make all
 
 Each experiment writes to a predictable location:
 
-| Experiment              | Script                                         | Output CSVs                                          |
-| ----------------------- | ---------------------------------------------- | ---------------------------------------------------- |
-| 1 — Batch hotspot       | `scripts/experiment_1_batch_hotspot.py`        | `reports/experiment_1_{overall,per_hour}.csv`        |
-| 2 — Anomaly             | `scripts/experiment_2_anomaly.py`              | `reports/experiment_2_{baseline,anomalies}.csv`      |
-| 3 — Stream vs batch     | `scripts/experiment_3_streaming_vs_batch.py`   | `reports/experiment_3_summary.csv`                   |
-| 4 — Exact vs approx     | `scripts/experiment_4_exact_vs_approximate.py` | `reports/experiment_4_{summary,topk_*}.csv`          |
-| 5 — Parallel MapReduce  | `scripts/experiment_5_parallel.py`             | `reports/experiment_5_parallel.csv`                  |
+| Experiment                  | Script                                         | Output CSVs / Artifacts                              |
+| --------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| 1 — Batch hotspot           | `scripts/experiment_1_batch_hotspot.py`        | `reports/experiment_1_{overall,per_hour}.csv`        |
+| 2 — Anomaly                 | `scripts/experiment_2_anomaly.py`              | `reports/experiment_2_{baseline,anomalies}.csv`      |
+| 3 — Stream vs batch         | `scripts/experiment_3_streaming_vs_batch.py`   | `reports/experiment_3_summary.csv`                   |
+| 4 — Exact vs approx         | `scripts/experiment_4_exact_vs_approximate.py` | `reports/experiment_4_{summary,topk_*}.csv`          |
+| 5 — Parallel MapReduce      | `scripts/experiment_5_parallel.py`             | `reports/experiment_5_parallel.csv`                  |
+| 6 — Forecasting             | `scripts/experiment_6_forecast.py`             | `reports/experiment_6_forecast.csv`                  |
+| 7 — Advanced anomaly        | `scripts/experiment_7_advanced_anomaly.py`     | `reports/experiment_7_advanced_anomaly.csv`          |
+| 8 — Business analytics      | `scripts/experiment_8_business_analytics.py`   | `reports/{weekday_weekend_demand,top_od_pairs,airport_vs_manhattan}.csv` |
+| Benchmark                   | `scripts/run_benchmark.py`                     | `reports/benchmark_results.csv`                      |
+| Dashboard                   | `scripts/run_dashboard.py`                     | `reports/dashboard.png`                              |
 
 `scripts/make_figures.py` reads the summary CSVs above and writes
 `reports/figures/{top_zones,exact_vs_approx,stream_vs_batch,parallel_speedup}.png`.
+The added dashboard and benchmark scripts generate `reports/dashboard.png` and
+`reports/benchmark_results.csv`, respectively.
 
 ---
 
 ## Experiments
 
-| # | Script                                     | What it measures                                  |
-| - | ------------------------------------------ | ------------------------------------------------- |
-| 1 | `experiment_1_batch_hotspot.py`            | Top-k busiest zones per hour (batch SQL)          |
-| 2 | `experiment_2_anomaly.py`                  | Demand surges vs Nov/Dec baseline (z-score)       |
-| 3 | `experiment_3_streaming_vs_batch.py`       | Correctness + latency of streaming vs batch       |
+| # | Script                                     | What it measures |
+| - | ------------------------------------------ | ---------------- |
+| 1 | `experiment_1_batch_hotspot.py`            | Top-k busiest zones per hour (batch SQL) |
+| 2 | `experiment_2_anomaly.py`                  | Demand surges vs Nov/Dec baseline (z-score) |
+| 3 | `experiment_3_streaming_vs_batch.py`       | Correctness + latency of streaming vs batch |
 | 4 | `experiment_4_exact_vs_approximate.py`     | Memory / runtime / top-k accuracy of exact vs reservoir vs CMS |
 | 5 | `experiment_5_parallel.py`                 | MapReduce parallel ingest — wall time & speed-up vs workers |
+| 6 | `experiment_6_forecast.py`                 | Forecast backtesting and next-horizon demand prediction |
+| 7 | `experiment_7_advanced_anomaly.py`         | Robust z-score / EWMA / consensus anomaly detection |
+| 8 | `experiment_8_business_analytics.py`       | Business-oriented SQL analytics and operational summaries |
 
 ### What "MapReduce-style" means in Experiment 5
 
@@ -234,6 +258,8 @@ cores.
 * Unit-test fixtures synthesize a tiny parquet file with *intentional* dirty
   rows (negative distance, bad zones, duplicates, …) so the cleaning code is
   exercised on known bad input.
+* Added `test_extensions_smoke.py` to cover the newly introduced forecasting,
+  advanced anomaly, analytics, dashboard, and benchmarking extensions.
 
 Run tests:
 
@@ -263,6 +289,11 @@ nyc_taxi_monitor/
 │   ├── aggregate.py
 │   ├── hotspot.py
 │   ├── anomaly.py
+│   ├── advanced_anomaly.py
+│   ├── forecast.py
+│   ├── analytics.py
+│   ├── benchmarking.py
+│   ├── dashboard.py
 │   ├── streaming.py
 │   ├── approximate.py
 │   ├── parallel.py
@@ -276,6 +307,11 @@ nyc_taxi_monitor/
 │   ├── experiment_3_streaming_vs_batch.py
 │   ├── experiment_4_exact_vs_approximate.py
 │   ├── experiment_5_parallel.py
+│   ├── experiment_6_forecast.py
+│   ├── experiment_7_advanced_anomaly.py
+│   ├── experiment_8_business_analytics.py
+│   ├── run_benchmark.py
+│   ├── run_dashboard.py
 │   └── make_figures.py
 ├── tests/
 │   ├── conftest.py
@@ -287,7 +323,8 @@ nyc_taxi_monitor/
 │   ├── test_anomaly.py
 │   ├── test_streaming.py
 │   ├── test_approximate.py
-│   └── test_parallel.py
+│   ├── test_parallel.py
+│   └── test_extensions_smoke.py
 ├── .github/workflows/ci.yml  # pytest matrix on Python 3.9 – 3.12
 ├── Makefile                  # make setup | data | pipeline | experiments | figures | test
 ├── data/          # git-ignored; populated by download_data.py
@@ -331,7 +368,7 @@ Beyond this README, three supporting documents live under `docs/`:
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | `docs/architecture.png`   | Rendered system architecture (shown in *Architecture* above).                       |
 | `docs/architecture.mmd`   | Mermaid source for the architecture diagram — edit and re-export via https://mermaid.live. |
-| `docs/RESULTS.md`         | Per-experiment deep-dive: setup, full tables, and insights for all five experiments. |
+| `docs/RESULTS.md`         | Per-experiment deep-dive: setup, full tables, and insights for the core experiments. |
 
 For the algorithmic rationale behind each module, see the *Algorithmic notes*
 section above.

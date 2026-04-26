@@ -25,6 +25,11 @@ from . import (  # noqa: F401  (re-export)
     parallel,
     streaming,
     utils,
+    analytics,
+    advanced_anomaly,
+    benchmarking,
+    dashboard,
+    forecast,
 )
 
 __all__ = [
@@ -38,5 +43,10 @@ __all__ = [
     "parallel",
     "streaming",
     "utils",
+    "analytics",
+    "advanced_anomaly",
+    "benchmarking",
+    "dashboard",
+    "forecast",
     "__version__",
 ]
