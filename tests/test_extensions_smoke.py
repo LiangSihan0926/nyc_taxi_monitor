@@ -21,6 +21,7 @@ from taxi_monitor.forecast import backtest_zone_forecasts, forecast_next_horizon
 def _toy_demand() -> pd.DataFrame:
     rows = []
     hours = pd.date_range("2024-01-01", periods=24 * 14, freq="h")
+
     for ts in hours:
         rows.append(
             {
@@ -36,11 +37,13 @@ def _toy_demand() -> pd.DataFrame:
                 "trips": 6 + (ts.dayofweek >= 5) * 3,
             }
         )
+
     return pd.DataFrame(rows)
 
 
 def test_forecast_backtest_and_next_horizon():
     demand = _toy_demand()
+
     summary = backtest_zone_forecasts(demand, holdout_hours=24)
     assert not summary.empty
 
@@ -50,6 +53,7 @@ def test_forecast_backtest_and_next_horizon():
 
 def test_consensus_anomalies_runs():
     demand = _toy_demand()
+
     demand.loc[
         (demand["zone_id"] == 1)
         & (demand["pickup_hour"] == demand["pickup_hour"].max()),
@@ -76,6 +80,7 @@ def test_dashboard_builds(tmp_path: Path):
 
 def test_benchmark_runs():
     demand = _toy_demand()
+
     out = benchmark_forecast_methods(demand)
     assert not out.empty
 

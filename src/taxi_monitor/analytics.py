@@ -118,9 +118,11 @@ def zone_hour_heatmap(
     return conn.execute(
         """
         WITH top_zones AS (
-            SELECT pu_location_id AS zone_id, COUNT(*) AS trips
+            SELECT
+                pu_location_id AS zone_id,
+                COUNT(*) AS trips
             FROM clean_trips
-            GROUP BY zone_id
+            GROUP BY pu_location_id
             ORDER BY trips DESC
             LIMIT ?
         )
@@ -129,9 +131,14 @@ def zone_hour_heatmap(
             EXTRACT(HOUR FROM t.pickup_datetime) AS hour_of_day,
             COUNT(*) AS trips
         FROM clean_trips t
-        INNER JOIN top_zones z ON z.zone_id = t.pu_location_id
-        GROUP BY zone_id, hour_of_day
-        ORDER BY zone_id, hour_of_day
+        INNER JOIN top_zones z
+            ON z.zone_id = t.pu_location_id
+        GROUP BY
+            t.pu_location_id,
+            EXTRACT(HOUR FROM t.pickup_datetime)
+        ORDER BY
+            t.pu_location_id,
+            EXTRACT(HOUR FROM t.pickup_datetime)
         """,
         [top_k_zones],
     ).df()
@@ -151,8 +158,12 @@ def avg_fare_distance_by_zone(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
             AVG(t.total_amount) AS avg_total_amount,
             AVG(t.trip_duration_sec) / 60.0 AS avg_duration_min
         FROM clean_trips t
-        LEFT JOIN zone_lookup z ON z.location_id = t.pu_location_id
-        GROUP BY zone_id, zone_name, borough
+        LEFT JOIN zone_lookup z
+            ON z.location_id = t.pu_location_id
+        GROUP BY
+            t.pu_location_id,
+            COALESCE(z.zone, ''),
+            COALESCE(z.borough, '')
         ORDER BY trips DESC
         """
     ).df()
