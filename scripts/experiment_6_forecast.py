@@ -1,10 +1,8 @@
-"""Experiment 7 — Advanced anomaly detection.
+"""Experiment 6 — Forecast backtesting.
 
-Applies multiple anomaly detection methods (robust z-score and EWMA residuals)
-and flags anomalies based on consensus voting across detectors.
-
-Outputs flagged anomalies to
-``reports/experiment_7_advanced_anomaly.csv``.
+Runs multiple forecasting methods on historical zone-hour demand data and
+evaluates their performance. Outputs a summary table of results to
+``reports/experiment_6_forecast.csv``.
 """
 from __future__ import annotations
 
@@ -13,11 +11,11 @@ import argparse
 import pandas as pd
 
 from taxi_monitor.aggregate import zone_hour_demand
-from taxi_monitor.advanced_anomaly import detect_consensus_anomalies
 from taxi_monitor.database import connect
+from taxi_monitor.forecast import backtest_zone_forecasts
 from taxi_monitor.utils import DB_PATH, PROJECT_ROOT, ensure_dir, get_logger
 
-logger = get_logger("experiment_7")
+logger = get_logger("experiment_6")
 
 
 def main() -> None:
@@ -37,18 +35,15 @@ def main() -> None:
 
         logger.info("Loaded demand data with %d rows", len(demand))
 
-        logger.info("Running consensus anomaly detection...")
-        results = detect_consensus_anomalies(demand)
+        results = backtest_zone_forecasts(demand)
 
-        logger.info("Detected %d anomalies", len(results))
+        logger.info("Forecast backtest complete: %d rows", len(results))
+        logger.info("Sample results:\n%s", results.head())
 
-        if not results.empty:
-            logger.info("Top anomalies:\n%s", results.head(10))
-
-        out = out_dir / "experiment_7_advanced_anomaly.csv"
+        out = out_dir / "experiment_6_forecast.csv"
         results.to_csv(out, index=False)
 
-        logger.info("Saved advanced anomaly results to %s", out)
+        logger.info("Saved forecast results to %s", out)
 
     finally:
         conn.close()

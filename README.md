@@ -14,14 +14,14 @@ reproducible dashboard layer.
 
 ![CI](https://github.com/LiangSihan0926/nyc_taxi_monitor/actions/workflows/ci.yml/badge.svg) ![Python](https://img.shields.io/badge/python-3.9%2B-blue) ![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen) ![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **Pitch** — A reproducible pipeline that turns 9.37 M raw NYC taxi trips into hotspot and anomaly insights by comparing four complementary big-data techniques head-to-head: batch SQL (DuckDB), online streaming, approximate counting (reservoir + Count-Min Sketch), and MapReduce-style parallel aggregation.
+> **Pitch** — A reproducible pipeline that turns 9.37 M raw NYC taxi trips into hotspot and anomaly insights by combining batch SQL (DuckDB), online streaming, approximate counting, MapReduce-style parallel aggregation, and lightweight forecasting / analytics extensions.
 
 ---
 
 ## Main Findings
 
 Across **9,369,680 cleaned Yellow Taxi trips** (Nov 2023 – Jan 2024) the
-system demonstrates five concrete findings:
+system demonstrates several concrete findings:
 
 - **DuckDB batch beats a pure-Python streaming monitor ~38×** on throughput
   (0.19 s vs 7.34 s end-to-end on 2.87 M events), but streaming holds
@@ -43,6 +43,10 @@ system demonstrates five concrete findings:
 - **Z-score anomaly detection flags 1,192 demand surges** against a weekly
   (hour-of-week) baseline — concentrated around Manhattan airports,
   Midtown, and the Upper East Side.
+- **Weekly seasonality dominates taxi demand** — a simple seasonal naive model (lag = 168 hours) significantly outperforms moving average and EWMA baselines (MAE ~2.9 vs ~9–10), demonstrating strong periodic structure in demand.
+- **Consensus anomaly detection improves robustness** — combining robust z-score and EWMA residual scoring flags 381 high-confidence anomalies (votes ≥ 2), capturing extreme demand surges while reducing false positives.
+- **Demand is highly structured across time and space** — weekday/weekend patterns, concentrated OD flows, and clear segmentation between airport (long-distance) and Manhattan (short-distance, high-frequency) trips reveal distinct behavioral regimes.
+- **Anomalies are rare but significant (~0.17% rate)** — detected events are sparse yet extreme, consistent with real-world demand shocks rather than noise.
 
 | Experiment | Metric | Value |
 | --- | --- | ---: |
@@ -53,7 +57,8 @@ system demonstrates five concrete findings:
 | Exact vs approximate       | Reservoir rank-corr       | **0.988** (3.5 MB, k = 100 k) |
 | MapReduce ingest           | Best speed-up (2 workers) | **1.30×** vs sequential |
 | Anomalies                  | Surges flagged (&#124;z&#124; > 3) | **1,192** |
-
+| Forecasting                | Best MAE (seasonal naive) | **~2.9** |
+| Advanced anomaly           | Consensus anomalies       | **381 (≥ 2 votes)** |
 ### Why it matters
 
 **The two most important results are counter-intuitive and pedagogically useful**:
@@ -67,6 +72,8 @@ system demonstrates five concrete findings:
    Going from 2 → 4 workers *slows the job down* because only 3 parquet
    files exist; extra processes idle while paying spawn and IPC overhead.
    This mirrors real Hadoop / Spark tuning trade-offs.
+3. **Simple models can outperform complex ones when structure is strong.**  
+   The seasonal naive forecast beats moving average and EWMA by a large margin, highlighting the dominance of weekly patterns in taxi demand.
 
 Everything else (batch vs streaming latency, z-score anomaly detection,
 top-zone distribution) confirms expected behaviour but at real scale.
@@ -92,6 +99,16 @@ top-zone distribution) confirms expected behaviour but at real scale.
       <br/><em>MapReduce wall time vs workers — speed-up plateaus at 2 workers because there are only 3 input partitions.</em>
     </td>
   </tr>
+  <tr>
+  <td align="center" width="50%">
+    <img src="reports/figures/forecast_mae.png"/>
+    <br/><em>Forecast MAE — weekly seasonal naive significantly outperforms other baselines, confirming strong weekly structure.</em>
+  </td>
+  <td align="center" width="50%">
+    <img src="reports/figures/anomaly_severity.png"/>
+    <br/><em>Top anomaly severity — detected events are rare but extreme, consistent with real demand shocks.</em>
+  </td>
+</tr>
 </table>
 
 ---
@@ -160,7 +177,7 @@ python scripts/run_dashboard.py
 
 # 7. (Optional) Regenerate the plots embedded in this README
 python scripts/make_figures.py
-
+```
 Experiment outputs land in `reports/*.csv`; PNG plots in `reports/figures/`.
 A `Makefile` wraps the whole pipeline: `make setup && make all`.
 
