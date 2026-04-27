@@ -268,7 +268,7 @@ cores.
 ## Testing & reproducibility
 
 * `pytest` + `pytest-cov`; fail-under coverage gate set to **80 %** in
-  `pyproject.toml` (currently **~98 %** branch coverage).
+  `pyproject.toml` (currently **~97 %** branch coverage).
 * All RNGs are seeded via `taxi_monitor.utils.set_seed`; tests use a
   `@pytest.fixture(autouse=True)` that re-seeds per test.
 * No test hits the network — `ingest.download_file` is monkey-patched.
