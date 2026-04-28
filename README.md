@@ -177,6 +177,9 @@ python scripts/run_dashboard.py
 
 # 7. (Optional) Regenerate the plots embedded in this README
 python scripts/make_figures.py
+
+# 8. Run the interactive Streamlit dashboard
+streamlit run app.py
 ```
 Experiment outputs land in `reports/*.csv`; PNG plots in `reports/figures/`.
 A `Makefile` wraps the whole pipeline: `make setup && make all`.
@@ -294,6 +297,7 @@ nyc_taxi_monitor/
 ├── pyproject.toml
 ├── requirements.txt
 ├── requirements-dev.txt
+├── app.py
 ├── docs/
 │   ├── architecture.mmd       # Mermaid source for the system diagram
 │   ├── architecture.png       # Rendered diagram used in README
