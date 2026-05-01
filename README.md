@@ -71,21 +71,21 @@ Across **9,369,680 cleaned Yellow Taxi trips**, the system finds:
 
 ### Why it matters
 
-The most important results are counter-intuitive:
+**Two of the most important results are counter-intuitive and pedagogically useful**:
 
-1. **Approximate counting is not always more memory-efficient.**  
-   With only 263 taxi zones, the exact dictionary uses less memory than the
-   Count-Min Sketch. The sketch becomes more attractive only when the key
-   cardinality is large enough to justify its fixed counter-array cost.
+1. **Count-Min Sketch is not universally smaller than an exact dict.**  At
+   263-zone cardinality, the exact dict (23 KB) beats CMS (80 KB).  The
+   sketch's theoretical win only appears once the key universe outgrows
+   `depth × width` — this project demonstrates that crossover boundary
+   empirically.
+2. **Parallel benchmarks are sensitive to OS file cache state.**  The
+   committed worker-count sweep runs in fixed ascending order, so later
+   runs read warmer cache and look artificially faster.  The 2.22× best
+   speed-up at 8 workers is therefore an *upper bound*; honest cold-cache
+   numbers would likely be smaller.
 
-2. **Parallel speed-up is bounded by partition count, not CPU count.**  
-   Adding more workers does not help when there are only three input parquet
-   files. This mirrors real Hadoop / Spark tuning trade-offs: parallelism is
-   limited by the number and size of input partitions.
-
-3. **Simple forecasting baselines can be strong when structure is clear.**  
-   The seasonal naive model beats moving average and EWMA baselines because NYC
-   taxi demand has strong weekly periodicity.
+Everything else (batch vs streaming throughput gap, z-score anomaly
+detection, top-zone distribution) confirms expected behaviour at real scale.
 
 <table>
   <tr>
