@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import time
+from calendar import monthrange
 from pathlib import Path
 
 import pandas as pd
@@ -65,12 +66,17 @@ def main() -> None:
     stream_topk = monitor.top_k(args.k)
     logger.info("streaming done: %.2fs, %d events", stream_total, monitor.ingested)
 
-    # --- batch side ------------------------------------------------------
-    logger.info("running batch SQL query on DuckDB")
+    # --- batch side (filtered to same month as streaming for fair comparison) -
+    year, month = map(int, args.month.split("-"))
+    last_day = monthrange(year, month)[1]
+    since = f"{args.month}-01 00:00:00"
+    until = f"{args.month}-{last_day:02d} 23:59:59"
+
+    logger.info("running batch SQL query on DuckDB (filtered to %s)", args.month)
     conn = connect(args.db)
     try:
         t0 = time.perf_counter()
-        batch_df = busiest_zones(conn, k=args.k)
+        batch_df = busiest_zones(conn, k=args.k, since=since, until=until)
         batch_total = time.perf_counter() - t0
     finally:
         conn.close()
