@@ -97,6 +97,14 @@ def benchmark(
 
     The first entry in ``worker_counts`` is used as the baseline for
     the ``speedup`` column.
+
+    .. note::
+       Worker counts are run in the order supplied.  Because reading the
+       same parquet files repeatedly warms the OS file cache, later runs
+       can be artificially faster than the first.  For rigorous numbers
+       randomize ``worker_counts`` or run the sweep multiple times and
+       average; the committed CSV uses the natural ascending order, so
+       its higher worker counts likely benefit from cache effects.
     """
     rows = []
     for w in worker_counts:

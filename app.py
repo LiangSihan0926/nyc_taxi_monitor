@@ -118,7 +118,7 @@ elif page == "Project Health":
     st.write("A detailed look at testing infrastructure.")
     
     st.subheader("🧪 Test Coverage")
-    st.metric(label="pytest-cov Branch Coverage", value="97.0%", delta="Target: > 80%")
+    st.metric(label="pytest-cov Branch Coverage", value="96.19%", delta="Target: > 80%")
     st.info("Continuous Integration (CI) is configured to automatically fail if coverage ever drops below 80%.")
     
     # --- THE BREAKDOWN SECTION ---

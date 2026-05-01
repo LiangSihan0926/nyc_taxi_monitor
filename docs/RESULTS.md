@@ -52,7 +52,7 @@ is residential and the other a business district.  The per-hour table
 ### Setup
 Fit a per-`(zone, hour-of-week)` baseline (mean, std) on Nov + Dec 2023,
 then score every hourly bucket in January.  A row is flagged when
-`|(count − mean) / max(std, 0.5)| ≥ 3`.
+`|(count − mean) / max(std, 1.0)| ≥ 3`.
 
 ### Results
 - **Baseline rows**: 29,478 (≈ 168 hours-of-week × ~175 non-trivial zones)
@@ -95,15 +95,15 @@ parallel, run the equivalent batch SQL through DuckDB on the same data.
 
 | Mode | Wall clock | Per-event | Top-k vs exact |
 | --- | ---: | ---: | ---: |
-| Batch SQL (DuckDB)  | **0.19 s** | 0.07 µs | — (ground truth) |
-| Streaming monitor   | 7.34 s     | 2.56 µs | Jaccard 0.82, Spearman ρ 0.925 |
+| Batch SQL (DuckDB)  | **0.064 s** | 0.02 µs | — (ground truth) |
+| Streaming monitor   | 5.32 s     | 1.85 µs | Jaccard 1.00, Spearman ρ 1.00 |
 
-- **Mean per-10 k-batch latency**: **10.8 ms**
-- **Batch throughput speed-up**: **37.8×** over streaming
+- **Mean per-10 k-batch latency**: **7.4 ms**
+- **Batch throughput speed-up**: **83.6×** over streaming
 
 ### Insight
 DuckDB is columnar C++ with vectorised aggregation; pure-Python is
-one-event-at-a-time — so the 38× throughput gap is expected, **not** a
+one-event-at-a-time — so the ~83× throughput gap is expected, **not** a
 streaming-architecture indictment.  The streaming monitor's value is
 that mean per-batch latency stays under 11 ms, making it a viable
 online component (dashboard, alerting) even when DuckDB is unavailable.
@@ -193,7 +193,6 @@ this project documents the caveat rather than fixing it (see the
 takeaway is therefore "**up to** 2.22× on warm cache" rather than a
 clean parallelism claim.
 
-
 ---
 
 ## Cross-cutting lessons
@@ -207,7 +206,7 @@ clean parallelism claim.
    4 workers on 3 files is slower than 2 workers on 3 files.
 
 3. **Pure-Python streaming is viable when latency > throughput.**
-   Experiment 3: 38× throughput gap vs DuckDB, but 10.8 ms mean
+   Experiment 3: 83× throughput gap vs DuckDB, but 7.4 ms mean
    per-batch latency keeps the monitor viable for interactive / online
    use.
 
