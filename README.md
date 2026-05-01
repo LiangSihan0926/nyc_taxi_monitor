@@ -186,6 +186,18 @@ A `Makefile` wraps the whole pipeline: `make setup && make all`.
 
 ---
 
+
+## Running with Docker (100% Reproducibility)
+
+To ensure complete reproducibility across any operating system without needing to configure local Python environments, this project is fully containerized. The Docker image packages the code, dependencies, and pre-computed reports.
+
+```bash
+# 1. Build the image
+make docker-build
+
+# 2. Run the interactive dashboard
+make docker-run
+
 ## Reproducing Results
 
 All experiment CSVs (`reports/*.csv`) and figures (`reports/figures/*.png`) are
@@ -298,6 +310,8 @@ nyc_taxi_monitor/
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── app.py
+├── Dockerfile  
+├── .dockerignore 
 ├── docs/
 │   ├── architecture.mmd       # Mermaid source for the system diagram
 │   ├── architecture.png       # Rendered diagram used in README

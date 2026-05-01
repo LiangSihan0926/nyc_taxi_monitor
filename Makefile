@@ -1,4 +1,4 @@
-.PHONY: setup data pipeline experiments forecast advanced-anomaly analytics benchmark dashboard figures test clean all help app
+.PHONY: setup data pipeline experiments forecast advanced-anomaly analytics benchmark dashboard figures test clean all help app docker-build docker-run
 
 VENV := .venv
 PY   := $(VENV)/bin/python
@@ -12,6 +12,8 @@ help:
 	@echo "  benchmark    Run benchmark/profiling script"
 	@echo "  dashboard    Generate dashboard artifact"
 	@echo "  app          Launch the interactive Streamlit dashboard"
+	@echo "  docker-build Build the Docker image for the dashboard"
+	@echo "  docker-run   Run the containerized dashboard on port 8501"
 	@echo "  figures      Regenerate reports/figures/*.png from reports/*.csv"
 	@echo "  test         Run pytest with coverage (fail-under 80)"
 	@echo "  all          setup -> data -> pipeline -> experiments -> benchmark -> dashboard -> figures -> test"
@@ -67,3 +69,9 @@ clean:
 
 app:
 	$(PY) -m streamlit run app.py
+
+docker-build:
+	docker build -t taxi_monitor_app .
+
+docker-run:
+	docker run -p 8501:8501 taxi_monitor_app
