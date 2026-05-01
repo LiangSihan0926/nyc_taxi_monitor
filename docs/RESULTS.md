@@ -170,23 +170,29 @@ global top-10 via `heapq.nlargest`.  Worker count sweep: 1 → 2 → 4 → 8.
 
 | Workers | Wall time | Speed-up |
 | ---: | ---: | ---: |
-| 1 | 18.01 s | 1.00× (baseline) |
-| 2 | **13.90 s** | **1.30×** ← best |
-| 4 | 15.22 s | 1.18× |
-| 8 | 14.38 s | 1.25× |
+| 1 | 6.605 s | 1.00× (baseline) |
+| 2 | 4.493 s | 1.47× |
+| 4 | 3.092 s | 2.14× |
+| 8 | **2.976 s** | **2.22×** ← best |
 
 ### Insight
-**Speed-up plateaus at 2 workers because the job has only 3 input
-partitions** — workers beyond that sit idle while still paying spawn
-and IPC overhead.  This is a textbook demonstration that MapReduce
-scaling is bounded by the *number of map partitions*, not by the
-number of CPU cores, and is arguably the single most informative data
-point in the project for the MapReduce theme of the course.
+**Speed-up scales near-linearly from 1 to 4 workers (2.14×), then shows
+diminishing returns at 8 workers (2.22×, only +0.08× over 4 workers).**
+The bulk of the win comes between 1 → 2 → 4 workers, after which the
+workload approaches limits set by I/O saturation, process spawn cost,
+and inter-process pickle / IPC overhead.
 
-The regression at 4 workers (1.18× < 1.30× at 2 workers) also exposes
-that `multiprocessing.Pool` spawn cost is non-trivial for short-lived
-tasks.  Scaling this workload to 24 monthly parquets would likely show
-near-linear speed-up up to 8 workers.
+### Important caveat — cache bias
+
+The sweep runs worker counts in fixed ascending order, so later runs
+read warmer OS file cache than the first.  This **inflates** the
+apparent speed-up at higher worker counts.  A rigorous benchmark would
+either randomize the order or repeat the sweep many times and average;
+this project documents the caveat rather than fixing it (see the
+`note` block in `taxi_monitor.parallel.benchmark`).  The honest
+takeaway is therefore "**up to** 2.22× on warm cache" rather than a
+clean parallelism claim.
+
 
 ---
 
