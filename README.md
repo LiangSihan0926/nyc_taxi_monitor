@@ -189,7 +189,7 @@ A `Makefile` wraps the whole pipeline: `make setup && make all`.
 
 ## Running with Docker (100% Reproducibility)
 
-To ensure complete reproducibility across any operating system without needing to configure local Python environments, this project is fully containerized. The Docker image packages the code, dependencies, and pre-computed reports.
+To ensure complete reproducibility across any operating system without configuring local Python environments, this project is fully containerized. The Docker image packages the code, dependencies, and pre-computed reports.
 
 ```bash
 # 1. Build the image
@@ -197,6 +197,7 @@ make docker-build
 
 # 2. Run the interactive dashboard
 make docker-run
+```
 
 ## Reproducing Results
 
@@ -205,21 +206,36 @@ committed, so `git clone` + reading is enough for grading.  To re-derive
 everything end-to-end:
 
 ```bash
-# 0. One-time setup
-make setup                                       # or: pip install -e ".[dev,viz]"
-make data                                        # downloads ~150 MB TLC parquets
+
+### Option A: The "One-Shot" Command
+The simplest way to run the entire pipeline (setup, data download, DuckDB ingest, experiments, figures, and tests) is to use the master command:
+```bash
+make all
+
+### Option B: Step-by-Step Execution
+
+# 0. One-time setup and data download (~150 MB of TLC parquets)
+make setup            # or: pip install -e ".[dev,viz]"
+make data             # or: python scripts/download_data.py
 
 # 1. Rebuild the DuckDB store from scratch
-make pipeline                                    # or: taxi-pipeline --months 2023-11 2023-12 2024-01
+make pipeline         # or: taxi-pipeline --months 2023-11 2023-12 2024-01
 
-# 2. Re-run every experiment (writes reports/*.csv)
-make experiments                                 # or: taxi-experiment-1 ... taxi-experiment-8
+# 2. Re-run every experiment (writes to reports/*.csv)
+make experiments      # or: taxi-experiment-1 ... taxi-experiment-8
 
-# 3. Refresh the 4 embedded figures
-make figures                                     # or: taxi-figures
+# 3. Refresh the embedded figures
+make figures          # or: taxi-figures
+```
 
-# Or do everything in one shot:
-make all
+### Testing
+The test suite ensures the integrity of the data cleaning processes, aggregations, anomaly detection, and approximate algorithms.
+```bash
+# The easiest way (runs through the Makefile):
+make test
+
+# Or run the standard Pytest command directly:
+python -m pytest --cov=taxi_monitor --cov-report=term-missing
 ```
 
 Each experiment writes to a predictable location:
