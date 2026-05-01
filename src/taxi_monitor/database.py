@@ -14,7 +14,7 @@ from typing import Iterable, Iterator, Optional, Union
 import duckdb
 import pandas as pd
 
-from .utils import DB_PATH, ensure_dir, get_logger
+from .utils import ensure_dir, get_logger
 
 __all__ = [
     "connect",

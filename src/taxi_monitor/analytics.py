@@ -5,7 +5,6 @@ analytics system, not just a benchmark harness.
 """
 from __future__ import annotations
 
-from typing import Optional
 
 import duckdb
 import pandas as pd

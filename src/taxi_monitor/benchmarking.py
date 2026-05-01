@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 import tracemalloc
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict
 
 import pandas as pd
 

@@ -18,7 +18,7 @@ from taxi_monitor.aggregate import busiest_zones
 from taxi_monitor.approximate import compare_topk
 from taxi_monitor.clean import clean_trips
 from taxi_monitor.database import connect
-from taxi_monitor.hotspot import HotspotResult, top_k_from_counts
+from taxi_monitor.hotspot import HotspotResult
 from taxi_monitor.ingest import load_trips
 from taxi_monitor.streaming import StreamingMonitor, stream_from_dataframe
 from taxi_monitor.utils import DB_PATH, PROJECT_ROOT, RAW_DIR, ensure_dir, get_logger

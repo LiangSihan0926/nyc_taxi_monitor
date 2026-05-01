@@ -7,14 +7,13 @@ heavy dependency like Streamlit.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from .forecast import prepare_hourly_panel
 from .hotspot import top_k_per_window
 from .utils import ensure_dir, get_logger
 

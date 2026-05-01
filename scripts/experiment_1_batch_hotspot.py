@@ -6,7 +6,6 @@ full per-hour top-k table to ``reports/experiment_1_hotspots.csv``.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 from taxi_monitor.aggregate import busiest_zones, zone_hour_demand
 from taxi_monitor.database import connect

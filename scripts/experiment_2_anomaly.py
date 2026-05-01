@@ -7,7 +7,6 @@ z-score exceeds the threshold.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 from taxi_monitor.aggregate import zone_hour_demand
 from taxi_monitor.anomaly import detect_anomalies, fit_baseline

@@ -9,7 +9,6 @@ This module complements ``taxi_monitor.anomaly`` by adding more robust baselines
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
