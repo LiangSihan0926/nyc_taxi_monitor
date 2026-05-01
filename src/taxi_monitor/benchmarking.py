@@ -24,6 +24,7 @@ __all__ = [
     "benchmark_many",
     "benchmark_anomaly_methods",
     "benchmark_forecast_methods",
+    "benchmark_forecast_and_anomaly",
 ]
 
 logger = get_logger(__name__)
@@ -125,3 +126,16 @@ def benchmark_forecast_methods(demand: pd.DataFrame) -> pd.DataFrame:
         )
         rows.append(res.as_dict())
     return pd.DataFrame(rows).sort_values("seconds").reset_index(drop=True)
+
+def benchmark_forecast_and_anomaly(demand: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    """Run both anomaly and forecast benchmarks and combine results."""
+    logger.info("Starting combined benchmark suite...")
+    
+    # We add **kwargs here to catch extra arguments like 'time_col' 
+    # and safely ignore them since the sub-functions don't need them.
+    
+    anomaly_df = benchmark_anomaly_methods(demand)
+    forecast_df = benchmark_forecast_methods(demand)
+    
+    combined = pd.concat([anomaly_df, forecast_df], ignore_index=True)
+    return combined

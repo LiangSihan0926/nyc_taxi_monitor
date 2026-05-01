@@ -8,7 +8,7 @@ from taxi_monitor.benchmarking import benchmark_forecast_and_anomaly
 
 
 def main() -> None:
-    db_path = Path("data/processed/taxi.duckdb")
+    db_path = Path("data/taxi_monitor.duckdb")
     out_path = Path("reports/benchmark_results.csv")
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
