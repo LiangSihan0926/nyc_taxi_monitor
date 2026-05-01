@@ -33,6 +33,7 @@ env/
 .idea/
 .DS_Store
 *.swp
+.streamlit/
 
 # --- Notebooks checkpoints ---
 .ipynb_checkpoints/
