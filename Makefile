@@ -1,4 +1,4 @@
-.PHONY: setup data pipeline experiments forecast advanced-anomaly analytics benchmark dashboard figures test clean all help
+.PHONY: setup data pipeline experiments forecast advanced-anomaly analytics benchmark dashboard figures test clean all help app
 
 VENV := .venv
 PY   := $(VENV)/bin/python
@@ -11,6 +11,7 @@ help:
 	@echo "  experiments  Run all experiment scripts (outputs under reports/)"
 	@echo "  benchmark    Run benchmark/profiling script"
 	@echo "  dashboard    Generate dashboard artifact"
+	@echo "  app          Launch the interactive Streamlit dashboard"
 	@echo "  figures      Regenerate reports/figures/*.png from reports/*.csv"
 	@echo "  test         Run pytest with coverage (fail-under 80)"
 	@echo "  all          setup -> data -> pipeline -> experiments -> benchmark -> dashboard -> figures -> test"
@@ -63,3 +64,6 @@ all: setup data pipeline experiments benchmark dashboard figures test
 clean:
 	rm -rf $(VENV) .pytest_cache .coverage coverage.xml build dist *.egg-info
 	find . -type d -name __pycache__ -exec rm -rf {} +
+
+app:
+	$(PY) -m streamlit run app.py
