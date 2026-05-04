@@ -34,12 +34,13 @@ system demonstrates several concrete findings:
   than assumed.
 - **Reservoir sampling (k = 100 000) reaches rank-correlation 0.988** with
   the exact top-10 — a clean empirical point on the accuracy-memory curve.
-- **MapReduce parallel ingest scales to 2.22× at 8 workers (1.47× / 2.14× / 2.22× at 2 / 4 / 8 workers)** over the
-  sequential baseline (18.0 s → 13.9 s); **4 and 8 workers regress to
-  1.18× / 1.25×** because the job only has 3 input partitions, so
-  additional workers sit idle while paying spawn overhead.  This is a
-  live demonstration of Amdahl-style scaling limits on the *map
-  partition count*, not CPU cores.
+- **MapReduce parallel ingest scales to 2.22× at 8 workers (1.47× / 2.14× /
+  2.22× at 2 / 4 / 8 workers)** over the sequential baseline (6.6 s → 3.0 s).
+  Speed-up flattens beyond 4 workers because the job only has 3 input
+  partitions; extra workers sit idle while paying spawn / IPC overhead, and
+  later runs benefit from OS file-cache warmup — so the 2.22× best is
+  honestly an *upper bound*.  Classic Amdahl-style scaling limit on the
+  *map partition count*, not CPU cores.
 - **Z-score anomaly detection flags 1,192 demand surges** against a weekly
   (hour-of-week) baseline — concentrated around Manhattan airports,
   Midtown, and the Upper East Side.
